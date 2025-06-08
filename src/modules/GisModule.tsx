@@ -1,10 +1,22 @@
-import { Container, Heading, Text } from "@chakra-ui/react";
+import { Container } from "@chakra-ui/react";
+import Map from "react-map-gl/maplibre";
+import "maplibre-gl/dist/maplibre-gl.css";
+import Search from "@/components/search";
 
 const GisModule = () => {
   return (
-    <Container maxW="breakpoint-xl" p={4} bg="blue.500">
-      <Heading>GisModule</Heading>
-      <Text>Hello Gismodule</Text>
+    <Container p={0} bg="blue.500" maxW="full" w="full" h="100vh" position="relative">
+      <Map
+        initialViewState={{
+          longitude: 106.6297,
+          latitude: 10.8231,
+          zoom: 10,
+        }}
+        boxZoom={true}
+        style={{ width: "100%", height: "100%" }}
+        mapStyle="http://localhost:8080/styles/osm/style.json"
+      />
+      <Search />
     </Container>
   );
 };
