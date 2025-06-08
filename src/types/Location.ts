@@ -2,9 +2,9 @@ export interface Location {
   name: string;
   lat: string;
   lon: string;
-  displayName: string;
   geojson: GeoJson;
   address: Address;
+  display_name: string;
 }
 
 type Coordinate = [number, number];

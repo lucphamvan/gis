@@ -18,6 +18,6 @@ export const SearchResultItem = ({ item, index, isSelected, onItemClick }: Searc
     fontSize="md"
     onMouseDown={() => onItemClick(item, index)}
   >
-    {item.name}
+    {item.display_name}
   </Box>
 );

@@ -21,7 +21,7 @@ const Search = () => {
 
   const selectLocation = useCallback(
     (location: Location) => {
-      setSearch(location.name);
+      setSearch(location.display_name);
       navigateToLocation(location);
       onClose();
     },
