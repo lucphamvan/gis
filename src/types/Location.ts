@@ -1,7 +1,7 @@
 export interface Location {
   name: string;
-  lat: number;
-  long: number;
+  lat: string;
+  lon: string;
   displayName: string;
   geojson: GeoJson;
   address: Address;

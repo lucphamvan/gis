@@ -3,11 +3,13 @@ import type { Location } from "@/types/Location";
 import { Input, Box, Show, useDisclosure, Stack } from "@chakra-ui/react";
 import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
+import { useMap } from "react-map-gl/maplibre";
 
 const Search = () => {
   const [search, setSearch] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const { open, onOpen, onClose } = useDisclosure();
+  const { current: map } = useMap(); // Assuming you might use the map instance later
 
   const { data } = useQuery({
     queryKey: ["search", search],
@@ -43,6 +45,12 @@ const Search = () => {
         if (selectedIndex >= 0 && data[selectedIndex]) {
           // Handle selection here - you can add your selection logic
           console.log("Selected:", data[selectedIndex]);
+          setSearch(data[selectedIndex].name);
+          map?.flyTo({
+            center: [parseFloat(data[selectedIndex].lon), parseFloat(data[selectedIndex].lat)],
+            zoom: 17,
+            essential: true, // This ensures the animation is not interrupted
+          });
           onClose();
         }
         break;
@@ -54,9 +62,15 @@ const Search = () => {
   };
 
   const handleItemClick = (item: Location, index: number) => {
+    console.log("Item clicked:", item);
+    map?.flyTo({
+      center: [parseFloat(item.lon), parseFloat(item.lat)],
+      zoom: 17,
+      essential: true, // This ensures the animation is not interrupted
+    });
+    setSearch(item.name);
     setSelectedIndex(index);
     onClose();
-    console.log("Item clicked:", item);
   };
 
   return (
@@ -81,7 +95,8 @@ const Search = () => {
                 bg={selectedIndex === index ? "blue.100" : "transparent"}
                 _hover={{ bg: "blue.100" }}
                 cursor="pointer"
-                onClick={() => handleItemClick(item, index)}
+                fontSize={"md"}
+                onMouseDown={() => handleItemClick(item, index)}
               >
                 {item.name}
               </Box>

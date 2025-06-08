@@ -15,8 +15,9 @@ const GisModule = () => {
         boxZoom={true}
         style={{ width: "100%", height: "100%" }}
         mapStyle="http://localhost:8080/styles/osm/style.json"
-      />
-      <Search />
+      >
+        <Search />
+      </Map>
     </Container>
   );
 };
