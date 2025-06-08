@@ -1,107 +1,96 @@
-import { getSuggestions } from "@/services/nominatim";
 import type { Location } from "@/types/Location";
-import { Input, Box, Show, useDisclosure, Stack } from "@chakra-ui/react";
-import { useQuery } from "@tanstack/react-query";
-import { useState, useEffect } from "react";
-import { useMap } from "react-map-gl/maplibre";
+import { Input, Box, Show, Stack } from "@chakra-ui/react";
+import { useCallback } from "react";
+import { useSearch } from "./hooks/useSearch";
+import { useMapNavigation } from "./hooks/useMapNavigation";
+import { SEARCH_CONFIG, type KeyboardKey } from "./constants";
+import { SearchResultItem } from "./components/SearchResultItem";
 
 const Search = () => {
-  const [search, setSearch] = useState("");
-  const [selectedIndex, setSelectedIndex] = useState(-1);
-  const { open, onOpen, onClose } = useDisclosure();
-  const { current: map } = useMap(); // Assuming you might use the map instance later
+  const { search, setSearch, selectedIndex, setSelectedIndex, open, onOpen, onClose, data, resetSearch } = useSearch();
 
-  const { data } = useQuery({
-    queryKey: ["search", search],
-    queryFn: () => getSuggestions(search),
-    enabled: !!search,
-    refetchOnWindowFocus: false,
-  });
+  const { navigateToLocation } = useMapNavigation();
 
-  // Reset selected index when data changes
-  useEffect(() => {
-    setSelectedIndex(-1);
-  }, [data]);
+  const handleSearchChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setSearch(event.target.value);
+      onOpen();
+    },
+    [setSearch, onOpen]
+  );
 
-  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSearch(event.target.value);
-    onOpen();
-  };
+  const selectLocation = useCallback(
+    (location: Location) => {
+      setSearch(location.name);
+      navigateToLocation(location);
+      onClose();
+    },
+    [setSearch, navigateToLocation, onClose]
+  );
 
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (!data || data.length === 0) return;
+  const handleKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLInputElement>) => {
+      if (!data || data.length === 0) return;
 
-    switch (event.key) {
-      case "ArrowDown":
-        event.preventDefault();
-        setSelectedIndex((prev) => (prev < data.length - 1 ? prev + 1 : prev));
-        break;
-      case "ArrowUp":
-        event.preventDefault();
-        setSelectedIndex((prev) => (prev > 0 ? prev - 1 : -1));
-        break;
-      case "Enter":
-        event.preventDefault();
-        if (selectedIndex >= 0 && data[selectedIndex]) {
-          // Handle selection here - you can add your selection logic
-          console.log("Selected:", data[selectedIndex]);
-          setSearch(data[selectedIndex].name);
-          map?.flyTo({
-            center: [parseFloat(data[selectedIndex].lon), parseFloat(data[selectedIndex].lat)],
-            zoom: 17,
-            essential: true, // This ensures the animation is not interrupted
-          });
-          onClose();
-        }
-        break;
-      case "Escape":
-        onClose();
-        setSelectedIndex(-1);
-        break;
-    }
-  };
+      const keyHandlers: Record<KeyboardKey, () => void> = {
+        ArrowDown: () => {
+          event.preventDefault();
+          setSelectedIndex((prev) => (prev < data.length - 1 ? prev + 1 : prev));
+        },
+        ArrowUp: () => {
+          event.preventDefault();
+          setSelectedIndex((prev) => (prev > 0 ? prev - 1 : -1));
+        },
+        Enter: () => {
+          event.preventDefault();
+          if (selectedIndex >= 0 && data[selectedIndex]) {
+            selectLocation(data[selectedIndex]);
+          }
+        },
+        Escape: () => {
+          resetSearch();
+        },
+      };
 
-  const handleItemClick = (item: Location, index: number) => {
-    console.log("Item clicked:", item);
-    map?.flyTo({
-      center: [parseFloat(item.lon), parseFloat(item.lat)],
-      zoom: 17,
-      essential: true, // This ensures the animation is not interrupted
-    });
-    setSearch(item.name);
-    setSelectedIndex(index);
-    onClose();
-  };
+      const handler = keyHandlers[event.key as KeyboardKey];
+      handler?.();
+    },
+    [data, selectedIndex, setSelectedIndex, selectLocation, resetSearch]
+  );
+
+  const handleItemClick = useCallback(
+    (item: Location, index: number) => {
+      setSelectedIndex(index);
+      selectLocation(item);
+    },
+    [setSelectedIndex, selectLocation]
+  );
+
+  const hasResults = data && data.length > 0;
+  const shouldShowResults = open && search && hasResults;
 
   return (
-    <Box position="absolute" top={4} left={4} zIndex={1000} width="300px">
+    <Box position="absolute" top={4} left={4} zIndex={1000} width={SEARCH_CONFIG.WIDTH}>
       <Input
         bg="white"
-        placeholder="Search GisMap"
+        placeholder={SEARCH_CONFIG.PLACEHOLDER}
         value={search}
         onChange={handleSearchChange}
         onKeyDown={handleKeyDown}
-        onBlur={() => onClose()}
-        onClick={() => onOpen()}
+        onBlur={resetSearch}
+        onClick={onOpen}
       />
-      <Show when={open && !!search}>
-        <Stack bg="white" borderRadius="md" boxShadow="md" maxHeight="300px" overflowY="auto">
-          {data?.map((item, index) => {
-            return (
-              <Box
-                p="2"
-                py="1"
-                key={`item${index}`}
-                bg={selectedIndex === index ? "blue.100" : "transparent"}
-                _hover={{ bg: "blue.100" }}
-                cursor="pointer"
-                fontSize={"md"}
-                onMouseDown={() => handleItemClick(item, index)}
-              >
-                {item.name}
-              </Box>
-            );
-          })}
+      <Show when={shouldShowResults}>
+        <Stack bg="white" borderRadius="md" boxShadow="md" maxHeight={SEARCH_CONFIG.MAX_HEIGHT} overflowY="auto">
+          {data?.map((item, index) => (
+            <SearchResultItem
+              key={`item-${index}`}
+              item={item}
+              index={index}
+              isSelected={selectedIndex === index}
+              onItemClick={handleItemClick}
+            />
+          ))}
         </Stack>
       </Show>
     </Box>
