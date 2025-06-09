@@ -112,10 +112,10 @@ const Search = () => {
   );
 
   const handleItemClick = useCallback(
-    (item: Location, index: number) => {
+    async (item: Location, index: number) => {
       setSelectedIndex(index);
       selectLocation(item);
-      addLocationMarker(item);
+      await addLocationMarker(item);
     },
     [setSelectedIndex, selectLocation, addLocationMarker]
   );
