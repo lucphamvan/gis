@@ -13,10 +13,9 @@ const Search = () => {
   const { navigateToLocation } = useMapNavigation();
   const { current: map } = useMapStore((state) => state.map);
 
-  const drawMarker = useCallback(
+  const addLocationMarker = useCallback(
     async (location: Location) => {
       if (!map) return;
-
       // Remove existing marker layer if it exists
       if (map.getLayer("marker-layer")) {
         map.removeLayer("marker-layer");
@@ -24,9 +23,11 @@ const Search = () => {
       if (map.getSource("markers")) {
         map.removeSource("markers");
       }
-
-      const image = await map.loadImage("/eth.png");
-      map.addImage("vite", image.data, { pixelRatio: 2 });
+      if (!map.getImage("marker")) {
+        const markerIcon = await import("@/assets/marker.png");
+        const image = await map.loadImage(markerIcon.default);
+        map.addImage("marker", image.data, { pixelRatio: 2 });
+      }
       map.addSource("markers", {
         type: "geojson",
         data: {
@@ -35,19 +36,18 @@ const Search = () => {
             {
               type: "Feature",
               geometry: { type: "Point", coordinates: [parseFloat(location.lon), parseFloat(location.lat)] },
-              properties: { title: location.display_name, description: "Best food in town" },
+              properties: { title: location.display_name },
             },
           ],
         },
       });
-
       map.addLayer({
         id: "marker-layer",
         type: "symbol",
         source: "markers",
         layout: {
-          "icon-image": "vite",
-          "icon-size": 1,
+          "icon-image": "marker",
+          "icon-size": 0.1,
           "icon-overlap": "always",
           "text-field": ["get", "title"],
           "text-offset": [0, 1],
@@ -115,9 +115,9 @@ const Search = () => {
     (item: Location, index: number) => {
       setSelectedIndex(index);
       selectLocation(item);
-      drawMarker(item);
+      addLocationMarker(item);
     },
-    [setSelectedIndex, selectLocation, drawMarker]
+    [setSelectedIndex, selectLocation, addLocationMarker]
   );
 
   const hasResults = data && data.length > 0;
